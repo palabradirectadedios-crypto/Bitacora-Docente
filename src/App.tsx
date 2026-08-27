@@ -12,6 +12,7 @@ import ExtraModulo from './components/ExtraModulo';
 import EditReportModal from './components/EditReportModal';
 import PinScreen from './components/PinScreen';
 import ConfirmModal from './components/ConfirmModal';
+import LogoConfigModal from './components/LogoConfigModal';
 import {
   testConnection,
   subscribeToEstudiantes,
@@ -47,7 +48,8 @@ import {
   Lock,
   Cloud,
   CloudCheck,
-  Trash2
+  Trash2,
+  Image as ImageIcon
 } from 'lucide-react';
 
 export default function App() {
@@ -111,6 +113,9 @@ export default function App() {
 
   // --- Reset Confirmation Custom Modal State ---
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  // --- Custom Institutional Logo Modal State ---
+  const [showLogoModal, setShowLogoModal] = useState(false);
 
   // Initial connection test and purge old dummy mock items from Firestore
   useEffect(() => {
@@ -350,7 +355,16 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Action buttons: Clear All, Backup and Lock Screen */}
+            {/* Action buttons: Logo Config, Clear All, Backup and Lock Screen */}
+            <button
+              onClick={() => setShowLogoModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-indigo-700 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100/80 border border-indigo-200 shadow-2xs transition cursor-pointer"
+              title="Configurar el logo y membrete institucional para los informes en PDF"
+              id="btn-open-logo-config"
+            >
+              <ImageIcon className="w-3.5 h-3.5 text-indigo-600" />
+              <span className="hidden sm:inline">Logo / Membrete</span>
+            </button>
             <button
               onClick={() => setShowResetConfirm(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100/80 border border-rose-200 transition cursor-pointer"
@@ -559,6 +573,12 @@ export default function App() {
         isDestructive={true}
         onConfirm={handleClearAllData}
         onCancel={() => setShowResetConfirm(false)}
+      />
+
+      {/* Institutional Logo & Header Customization Modal */}
+      <LogoConfigModal
+        isOpen={showLogoModal}
+        onClose={() => setShowLogoModal(false)}
       />
 
       {/* Modern Footer bar */}

@@ -5,32 +5,88 @@
 
 import { jsPDF } from 'jspdf';
 import { Estudiante, InformeEstudiante, InformeExtra } from '../types';
-import { getHeaderImagePNG } from './headerRenderer';
+import { getHeaderRenderInfo } from './headerRenderer';
+import { HeaderImageInfo } from './logoStorage';
 
 /**
  * Draws the official institutional header image on any page of the PDF.
+ * Adapts dynamically to wide banners (letterheads) as well as square/vertical emblems.
  */
-function drawOfficialHeader(doc: jsPDF, headerImgUrl: string, pageWidth: number, marginX: number, startY: number = 8): number {
-  const headerWidth = pageWidth - (marginX * 2); // 180mm
-  const headerHeight = 43.2; // 1000x240 aspect ratio: 180 * (240/1000) = 43.2mm
+function drawOfficialHeader(
+  doc: jsPDF, 
+  headerInfo: HeaderImageInfo, 
+  pageWidth: number, 
+  marginX: number, 
+  startY: number = 8
+): number {
+  const contentWidth = pageWidth - (marginX * 2); // 180mm
 
-  try {
-    doc.addImage(headerImgUrl, 'PNG', marginX, startY, headerWidth, headerHeight);
-  } catch (e) {
-    console.warn('Could not render header image with PNG type, trying generic format:', e);
+  if (headerInfo.aspectRatio >= 2.2) {
+    // Wide banner header (like the official Colegio Militar Almirante Colón letterhead banner)
+    const calculatedHeight = contentWidth / headerInfo.aspectRatio;
+    const headerHeight = Math.min(Math.max(calculatedHeight, 22), 44);
+
     try {
-      doc.addImage(headerImgUrl, marginX, startY, headerWidth, headerHeight);
-    } catch (err) {
-      console.error('Failed to draw header image:', err);
+      doc.addImage(headerInfo.dataUrl, 'PNG', marginX, startY, contentWidth, headerHeight, undefined, 'FAST');
+    } catch {
+      try {
+        doc.addImage(headerInfo.dataUrl, marginX, startY, contentWidth, headerHeight);
+      } catch (err) {
+        console.error('Failed to draw wide header image:', err);
+      }
     }
+
+    // Bottom gold accent line below banner
+    doc.setDrawColor(212, 175, 55); // #D4AF37 Gold
+    doc.setLineWidth(0.6);
+    doc.line(marginX, startY + headerHeight + 1.5, pageWidth - marginX, startY + headerHeight + 1.5);
+
+    return startY + headerHeight + 3.5;
+  } else {
+    // Square or compact emblem logo: draw logo on the left, typography on the right
+    const logoHeight = 28;
+    const logoWidth = Math.min(logoHeight * headerInfo.aspectRatio, 45);
+    const logoX = marginX + 2;
+
+    try {
+      doc.addImage(headerInfo.dataUrl, 'PNG', logoX, startY, logoWidth, logoHeight, undefined, 'FAST');
+    } catch {
+      try {
+        doc.addImage(headerInfo.dataUrl, logoX, startY, logoWidth, logoHeight);
+      } catch (err) {
+        console.error('Failed to draw emblem logo:', err);
+      }
+    }
+
+    // Text column beside the logo
+    const textX = logoX + logoWidth + 7;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(15, 23, 42); // slate-900
+    doc.text('Colegio Militar Almirante Colón', textX, startY + 8);
+
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(9.5);
+    doc.setTextColor(71, 85, 105); // slate-600
+    doc.text('“Educar la Voluntad y Formar la Personalidad”', textX, startY + 14.5);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(30, 41, 59); // slate-800
+    doc.text('Cereté – Córdoba', textX, startY + 20.5);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 23, 42); // slate-900
+    doc.text('INFORME DE SEGUIMIENTO COMPORTAMENTAL Y ACADÉMICO', textX, startY + 26.5);
+
+    // Bottom gold accent line below header
+    doc.setDrawColor(212, 175, 55); // #D4AF37 Gold
+    doc.setLineWidth(0.6);
+    doc.line(marginX, startY + logoHeight + 2, pageWidth - marginX, startY + logoHeight + 2);
+
+    return startY + logoHeight + 4;
   }
-
-  // Bottom gold accent line below header
-  doc.setDrawColor(212, 175, 55); // #D4AF37 Gold
-  doc.setLineWidth(0.6);
-  doc.line(marginX, startY + headerHeight + 1, pageWidth - marginX, startY + headerHeight + 1);
-
-  return startY + headerHeight + 3;
 }
 
 /**
@@ -55,8 +111,8 @@ function drawOfficialFooter(doc: jsPDF, pageNum: number, totalPages: number, pag
  * Generates and downloads the complete student PDF report with the official institutional header on every page.
  */
 export async function generateStudentReportPDF(estudiante: Estudiante, reports: InformeEstudiante[]) {
-  // Pre-render the official header image
-  const headerImgUrl = await getHeaderImagePNG();
+  // Pre-render the official header image with natural aspect ratio
+  const headerInfo = await getHeaderRenderInfo();
 
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -70,7 +126,7 @@ export async function generateStudentReportPDF(estudiante: Estudiante, reports: 
   let y = 8;
 
   // 1. Draw header on the first page
-  y = drawOfficialHeader(doc, headerImgUrl, pageWidth, marginX, 8);
+  y = drawOfficialHeader(doc, headerInfo, pageWidth, marginX, 8);
   y += 2; // small gap
 
   // 2. Student details summary box
@@ -209,7 +265,7 @@ export async function generateStudentReportPDF(estudiante: Estudiante, reports: 
         doc.addPage();
         
         // DRAW OFFICIAL HEADER ON NEW PAGE AS WELL!
-        y = drawOfficialHeader(doc, headerImgUrl, pageWidth, marginX, 8);
+        y = drawOfficialHeader(doc, headerInfo, pageWidth, marginX, 8);
         y += 2;
 
         // Continuation banner
@@ -282,7 +338,7 @@ export async function generateStudentReportPDF(estudiante: Estudiante, reports: 
  * Generates and downloads a single Extra Situation Report PDF with the official institutional header
  */
 export async function generateExtraReportPDF(report: InformeExtra, estudiantes: Estudiante[]) {
-  const headerImgUrl = await getHeaderImagePNG();
+  const headerInfo = await getHeaderRenderInfo();
 
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -296,7 +352,7 @@ export async function generateExtraReportPDF(report: InformeExtra, estudiantes: 
   let y = 8;
 
   // Draw official header
-  y = drawOfficialHeader(doc, headerImgUrl, pageWidth, marginX, 8);
+  y = drawOfficialHeader(doc, headerInfo, pageWidth, marginX, 8);
   y += 4;
 
   // Title Box
@@ -368,4 +424,29 @@ export async function generateExtraReportPDF(report: InformeExtra, estudiantes: 
 
   const fileName = `Informe_Situacion_${report.titulo.replace(/\s+/g, '_')}.pdf`;
   doc.save(fileName);
+}
+
+/**
+ * Generates an immediate 1-page sample preview PDF to test header/logo quality
+ */
+export async function generateSampleTestPDF() {
+  const sampleEst: Estudiante = {
+    id: 'sample-test',
+    nombre: 'Estudiante de Demostración',
+    grado: '5°',
+    createdAt: new Date().toISOString()
+  };
+
+  const sampleReport: InformeEstudiante[] = [
+    {
+      id: 'sample-rep-1',
+      estudianteId: 'sample-test',
+      fecha: new Date().toISOString().split('T')[0],
+      avance: 'Esta es una página de prueba generada para comprobar la nitidez, alineación y visualización del encabezado y logotipo institucional en los documentos PDF de la Bitácora.',
+      estado: 'excelente',
+      createdAt: new Date().toISOString()
+    }
+  ];
+
+  await generateStudentReportPDF(sampleEst, sampleReport);
 }
