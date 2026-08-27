@@ -1,0 +1,110 @@
+{
+  "entities": {
+    "Estudiante": {
+      "title": "Estudiante",
+      "description": "Expediente del estudiante",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador único del estudiante"
+        },
+        "nombre": {
+          "type": "string",
+          "description": "Nombre y apellido del estudiante"
+        },
+        "grado": {
+          "type": "string",
+          "description": "Grado escolar (1° a 11°)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Fecha y hora de registro ISO"
+        }
+      },
+      "required": ["id", "nombre", "grado", "createdAt"]
+    },
+    "InformeEstudiante": {
+      "title": "InformeEstudiante",
+      "description": "Informe de avance psicopedagógico del estudiante",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador único del informe"
+        },
+        "estudianteId": {
+          "type": "string",
+          "description": "ID del estudiante asociado"
+        },
+        "fecha": {
+          "type": "string",
+          "description": "Fecha del informe YYYY-MM-DD"
+        },
+        "avance": {
+          "type": "string",
+          "description": "Contenido del informe y observaciones"
+        },
+        "estado": {
+          "type": "string",
+          "description": "Estado o nivel de avance (excelente, bueno, regular, atencion_requerida)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Fecha y hora de creación ISO"
+        }
+      },
+      "required": ["id", "estudianteId", "fecha", "avance", "estado", "createdAt"]
+    },
+    "InformeExtra": {
+      "title": "InformeExtra",
+      "description": "Informe de situación o evento imprevisto",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador único del informe extra"
+        },
+        "titulo": {
+          "type": "string",
+          "description": "Título de la situación"
+        },
+        "fecha": {
+          "type": "string",
+          "description": "Fecha de la situación YYYY-MM-DD"
+        },
+        "descripcion": {
+          "type": "string",
+          "description": "Descripción detallada del suceso"
+        },
+        "categoria": {
+          "type": "string",
+          "description": "Categoría de la situación"
+        },
+        "participantesIds": {
+          "type": "string",
+          "description": "IDs de estudiantes involucrados"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Fecha y hora de creación ISO"
+        }
+      },
+      "required": ["id", "titulo", "fecha", "descripcion", "categoria", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/estudiantes/{estudianteId}": {
+      "schema": "Estudiante",
+      "description": "Colección de estudiantes registrados"
+    },
+    "/informes_estudiantes/{informeId}": {
+      "schema": "InformeEstudiante",
+      "description": "Colección de informes psicopedagógicos individuales"
+    },
+    "/informes_extra/{extraId}": {
+      "schema": "InformeExtra",
+      "description": "Colección de informes y situaciones imprevistas"
+    }
+  }
+}

@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Helper Functions
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Entity Validations
+    function isValidEstudiante(data) {
+      return data.id is string && isValidId(data.id) &&
+             data.nombre is string && data.nombre.size() > 0 && data.nombre.size() <= 200 &&
+             data.grado is string && data.grado.size() > 0 && data.grado.size() <= 50 &&
+             data.createdAt is string && data.createdAt.size() <= 50;
+    }
+
+    function isValidInformeEstudiante(data) {
+      return data.id is string && isValidId(data.id) &&
+             data.estudianteId is string && isValidId(data.estudianteId) &&
+             data.fecha is string && data.fecha.size() <= 20 &&
+             data.avance is string && data.avance.size() <= 10000 &&
+             data.estado is string && data.estado in ['excelente', 'bueno', 'regular', 'atencion_requerida'] &&
+             data.createdAt is string && data.createdAt.size() <= 50;
+    }
+
+    function isValidInformeExtra(data) {
+      return data.id is string && isValidId(data.id) &&
+             data.titulo is string && data.titulo.size() > 0 && data.titulo.size() <= 300 &&
+             data.fecha is string && data.fecha.size() <= 20 &&
+             data.descripcion is string && data.descripcion.size() <= 10000 &&
+             data.categoria is string && data.categoria in ['imprevisto', 'reunion', 'observacion', 'urgencia', 'actividad'] &&
+             data.participantesIds is list && data.participantesIds.size() <= 500 &&
+             data.createdAt is string && data.createdAt.size() <= 50;
+    }
+
+    // Default deny rule
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Connection health check doc
+    match /test/connection {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Estudiantes collection
+    match /estudiantes/{estudianteId} {
+      allow read: if true;
+      allow create, update: if isValidId(estudianteId) && isValidEstudiante(incoming());
+      allow delete: if isValidId(estudianteId);
+    }
+
+    // Informes Estudiantes collection
+    match /informes_estudiantes/{informeId} {
+      allow read: if true;
+      allow create, update: if isValidId(informeId) && isValidInformeEstudiante(incoming());
+      allow delete: if isValidId(informeId);
+    }
+
+    // Informes Extra collection
+    match /informes_extra/{extraId} {
+      allow read: if true;
+      allow create, update: if isValidId(extraId) && isValidInformeExtra(incoming());
+      allow delete: if isValidId(extraId);
+    }
+  }
+}

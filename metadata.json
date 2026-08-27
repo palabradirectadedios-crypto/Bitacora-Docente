@@ -1,0 +1,6 @@
+{
+  "name": "Bitácora Psicóloga Milena",
+  "description": "Plataforma de seguimiento escolar con calendario de informes, registro de estudiantes y reportes de situaciones imprevistas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
