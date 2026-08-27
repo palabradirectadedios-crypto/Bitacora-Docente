@@ -63,9 +63,7 @@ export default function App() {
     const saved = localStorage.getItem('bitacora_estudiantes');
     if (!saved) return [];
     try {
-      const parsed = JSON.parse(saved);
-      // Filter out any previous mock students
-      return parsed.filter((e: Estudiante) => !['est-1', 'est-2', 'est-3', 'est-4'].includes(e.id));
+      return JSON.parse(saved);
     } catch {
       return [];
     }
@@ -75,8 +73,7 @@ export default function App() {
     const saved = localStorage.getItem('bitacora_informes_estudiantes');
     if (!saved) return [];
     try {
-      const parsed = JSON.parse(saved);
-      return parsed.filter((r: InformeEstudiante) => !r.id.startsWith('inf-est-1') && !r.id.startsWith('inf-est-2') && !r.id.startsWith('inf-est-3') && !r.id.startsWith('inf-est-4') && !r.id.startsWith('inf-est-5') && !r.id.startsWith('inf-est-6'));
+      return JSON.parse(saved);
     } catch {
       return [];
     }
@@ -86,8 +83,7 @@ export default function App() {
     const saved = localStorage.getItem('bitacora_informes_extra');
     if (!saved) return [];
     try {
-      const parsed = JSON.parse(saved);
-      return parsed.filter((r: InformeExtra) => !['inf-ext-1', 'inf-ext-2', 'inf-ext-3'].includes(r.id));
+      return JSON.parse(saved);
     } catch {
       return [];
     }
@@ -117,24 +113,9 @@ export default function App() {
   // --- Custom Institutional Logo Modal State ---
   const [showLogoModal, setShowLogoModal] = useState(false);
 
-  // Initial connection test and purge old dummy mock items from Firestore
+  // Initial connection test
   useEffect(() => {
     testConnection();
-    
-    // Check and purge legacy mock records if present
-    const purgeOldMocks = async () => {
-      const savedEst = localStorage.getItem('bitacora_estudiantes');
-      if (savedEst && (savedEst.includes('Mateo Fernández') || savedEst.includes('est-1'))) {
-        localStorage.removeItem('bitacora_estudiantes');
-        localStorage.removeItem('bitacora_informes_estudiantes');
-        localStorage.removeItem('bitacora_informes_extra');
-        setEstudiantes([]);
-        setInformesEstudiantes([]);
-        setInformesExtra([]);
-        await clearAllFirestoreData();
-      }
-    };
-    purgeOldMocks();
   }, []);
 
   // --- Real-time Firebase Firestore Subscriptions ---
@@ -145,24 +126,20 @@ export default function App() {
 
     try {
       unsubscribeEst = subscribeToEstudiantes((cloudEstudiantes) => {
-        // Filter out legacy mock data IDs
-        const filtered = cloudEstudiantes.filter(e => !['est-1', 'est-2', 'est-3', 'est-4'].includes(e.id));
-        setEstudiantes(filtered);
-        localStorage.setItem('bitacora_estudiantes', JSON.stringify(filtered));
+        setEstudiantes(cloudEstudiantes);
+        localStorage.setItem('bitacora_estudiantes', JSON.stringify(cloudEstudiantes));
         setIsCloudSynced(true);
       });
 
       unsubscribeInfEst = subscribeToInformesEstudiantes((cloudInformes) => {
-        const filtered = cloudInformes.filter(r => !['inf-est-1', 'inf-est-2', 'inf-est-3', 'inf-est-4', 'inf-est-5', 'inf-est-6'].includes(r.id));
-        setInformesEstudiantes(filtered);
-        localStorage.setItem('bitacora_informes_estudiantes', JSON.stringify(filtered));
+        setInformesEstudiantes(cloudInformes);
+        localStorage.setItem('bitacora_informes_estudiantes', JSON.stringify(cloudInformes));
         setIsCloudSynced(true);
       });
 
       unsubscribeInfExt = subscribeToInformesExtra((cloudExtra) => {
-        const filtered = cloudExtra.filter(r => !['inf-ext-1', 'inf-ext-2', 'inf-ext-3'].includes(r.id));
-        setInformesExtra(filtered);
-        localStorage.setItem('bitacora_informes_extra', JSON.stringify(filtered));
+        setInformesExtra(cloudExtra);
+        localStorage.setItem('bitacora_informes_extra', JSON.stringify(cloudExtra));
         setIsCloudSynced(true);
       });
     } catch (e) {
@@ -194,7 +171,7 @@ export default function App() {
   // 1. Students CRUD
   const handleAddEstudiante = async (nombre: string, grado: string) => {
     const newEst: Estudiante = {
-      id: `est-${Date.now()}`,
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `est_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       nombre,
       grado,
       createdAt: new Date().toISOString()
@@ -234,7 +211,7 @@ export default function App() {
   // 2. Student Reports CRUD
   const handleAddInformeEstudiante = async (estudianteId: string, fecha: string, avance: string, estado: EstadoInforme) => {
     const newReport: InformeEstudiante = {
-      id: `inf-est-${Date.now()}`,
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `inf_est_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       estudianteId,
       fecha,
       avance,
@@ -258,7 +235,7 @@ export default function App() {
   // 3. Extra Reports CRUD
   const handleAddInformeExtra = async (titulo: string, fecha: string, descripcion: string, categoria: CategoriaExtra, participantesIds: string[]) => {
     const newExtra: InformeExtra = {
-      id: `inf-ext-${Date.now()}`,
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `inf_ext_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       titulo,
       fecha,
       descripcion,
